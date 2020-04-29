@@ -31,7 +31,7 @@ import os
 import sys
 import time
 import numpy as np
-import imgaug  # https://github.com/aleju/imgaug (pip3 install imgaug)
+import imgaug as ia # https://github.com/aleju/imgaug (pip3 install imgaug)
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -122,14 +122,20 @@ class CocoDataset(utils.Dataset):
             self.add_class("coco", i, coco.loadCats(i)[0]["name"])
 
         # Add images
+        not_found_counter=0
         for i in image_ids:
-            self.add_image(
-                "coco", image_id=i,
-                path=os.path.join(image_dir, coco.imgs[i]['file_name']),
-                width=coco.imgs[i]["width"],
-                height=coco.imgs[i]["height"],
-                annotations=coco.loadAnns(coco.getAnnIds(
-                    imgIds=[i], catIds=class_ids, iscrowd=None)))
+            try:
+                self.add_image(
+                    "coco", image_id=i,
+                    path=os.path.join(image_dir, coco.imgs[i]['file_name']),
+                    width=coco.imgs[i]["width"],
+                    height=coco.imgs[i]["height"],
+                    annotations=coco.loadAnns(coco.getAnnIds(
+                        imgIds=[i], catIds=class_ids, iscrowd=None)))
+            except:
+                not_found_counter+=1
+
+        print("Images not found:",not_found_counter)
         if return_coco:
             return coco
 
