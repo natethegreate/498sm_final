@@ -501,14 +501,14 @@ if __name__ == '__main__':
         print("Training network heads")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=5,
+                    epochs=8,
                     layers='heads',
                     augmentation=augmentation)
 
         print("Resnet 4+")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=10,
+                    epochs=8,
                     layers='4+',
                     augmentation=augmentation)
 
