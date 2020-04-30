@@ -2311,6 +2311,7 @@ class MaskRCNN():
         assert self.mode == "training", "Create model in training mode."
 
         # Pre-defined layer regular expressions
+        print("Batch size:", self.config.BATCH_SIZE)
         layer_regex = {
             # all layers but the backbone
             "heads": r"(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
