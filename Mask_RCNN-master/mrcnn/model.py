@@ -1806,8 +1806,8 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
             raise
         except:
             # Log it and skip the image
-            logging.exception("Error processing image {}".format(
-                dataset.image_info[image_id]))
+            # logging.exception("Error processing image {}".format(
+            #     dataset.image_info[image_id]))
             error_count += 1
             # if error_count > 5:
             #     raise
