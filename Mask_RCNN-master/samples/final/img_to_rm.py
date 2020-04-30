@@ -46,7 +46,7 @@ from pycocotools import mask as maskUtils
 import zipfile
 import urllib.request
 import shutil
-
+import json
 # Root directory of the project
 ROOT_DIR = os.path.abspath("../../")
 
@@ -118,6 +118,19 @@ class CocoDataset(utils.Dataset):
             
         # Remove duplicates
         image_ids = list(set(image_ids))
+        print("Generating imgs_to_save.json.")
+        with open(dataset_dir+'imgs_to_save.json','w') as f:
+            json.dump(image_ids,f) 
+        
+        ##create directory to save
+        save_dir = "{}/{}{}filtered".format(dataset_dir, subset, year)
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        for id in image_ids:
+            path=os.path.join(image_dir, coco.imgs[id]['file_name'])
+            path_save = os.path.join(save_dir, coco.imgs[id]['file_name'])
+            shutil.copy2(path,path_save)
 
         # Add classes
         for i in class_ids:
@@ -444,7 +457,21 @@ if __name__ == '__main__':
             DETECTION_MIN_CONFIDENCE = 0
         config = InferenceConfig()
     config.display()
+    if args.command == "train":
+        # Training dataset. Use the training set and 35K from the
+        # validation set, as as in the Mask RCNN paper.
+        dataset_train = CocoDataset()
+        dataset_train.load_coco(args.dataset, "train", year=args.year, auto_download=args.download)
+        if args.year in '2014':
+            dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
+        dataset_train.prepare()
 
+        # Validation dataset
+        dataset_val = CocoDataset()
+        val_type = "val" if args.year in '2017' else "minival"
+        dataset_val.load_coco(args.dataset, val_type, year=args.year, auto_download=args.download)
+        dataset_val.prepare()
+'''
     # Create model
     if args.command == "train":
         model = modellib.MaskRCNN(mode="training", config=config,
@@ -467,61 +494,6 @@ if __name__ == '__main__':
 
     # Load weights
     print("Loading weights ", model_path)
-    model.load_weights(model_path, by_name=True)
-
-    # Train or evaluate
-    if args.command == "train":
-        # Training dataset. Use the training set and 35K from the
-        # validation set, as as in the Mask RCNN paper.
-        dataset_train = CocoDataset()
-        dataset_train.load_coco(args.dataset, "train", year=args.year, auto_download=args.download)
-        if args.year in '2014':
-            dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
-        dataset_train.prepare()
-
-        # Validation dataset
-        dataset_val = CocoDataset()
-        val_type = "val" if args.year in '2017' else "minival"
-        dataset_val.load_coco(args.dataset, val_type, year=args.year, auto_download=args.download)
-        dataset_val.prepare()
-
-        # Image Augmentation
-        # Right/Left flip 50% of the time
-        aug_max = 2
-        augmentation = ia.SomeOf((0, aug_max), [
-            ia.Fliplr(.5),
-            ia.Flipud(.5),
-            ia.OneOf([ia.Affine(rotate = 30 * i) for i in range(0, 12)]),
-            ia.Affine(scale={"x": (0.8, 1.2), "y": (0.8, 1.2)}),
-            ])
-
-        # *** This training schedule is an example. Update to your needs ***
-
-        # Training - Stage 1
-        print("Training network heads")
-        model.train(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE,
-                    epochs=2,
-                    layers='heads',
-                    augmentation=augmentation)
-
-        # Training - Stage 3
-        # Fine tune all layers
-        print("Fine tune all layers")
-        model.train(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE,
-                    epochs=8,
-                    layers='all',
-                    augmentation=augmentation)
-
-    elif args.command == "evaluate":
-        # Validation dataset
-        dataset_val = CocoDataset()
-        val_type = "val" if args.year in '2017' else "minival"
-        coco = dataset_val.load_coco(args.dataset, val_type, year=args.year, return_coco=True, auto_download=args.download)
-        dataset_val.prepare()
-        print("Running COCO evaluation on {} images.".format(args.limit))
-        evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
-    else:
-        print("'{}' is not recognized. "
-              "Use 'train' or 'evaluate'".format(args.command))
+    model.load_weights(model_path, by_name=True)'''
+    
+    
