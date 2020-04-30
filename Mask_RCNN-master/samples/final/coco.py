@@ -481,7 +481,7 @@ if __name__ == '__main__':
 
         # Validation dataset
         dataset_val = CocoDataset()
-        val_type = "val" if args.year in '2017' else "minival"
+        val_type = "val" if args.year in '2014' else "minival"
         dataset_val.load_coco(args.dataset, val_type, year=args.year, auto_download=args.download)
         dataset_val.prepare()
 
@@ -501,14 +501,14 @@ if __name__ == '__main__':
         print("Training network heads")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=5,
+                    epochs=4,
                     layers='heads',
                     augmentation=augmentation)
 
         print("Resnet 4+")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=10,
+                    epochs=8,
                     layers='4+',
                     augmentation=augmentation)
 
