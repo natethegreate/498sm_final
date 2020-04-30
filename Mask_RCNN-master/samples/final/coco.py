@@ -481,7 +481,7 @@ if __name__ == '__main__':
 
         # Validation dataset
         dataset_val = CocoDataset()
-        val_type = "val" if args.year in '2017' else "minival"
+        val_type = "val" if args.year in '2014' else "minival"
         dataset_val.load_coco(args.dataset, val_type, year=args.year, auto_download=args.download)
         dataset_val.prepare()
 
@@ -524,7 +524,7 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         # Validation dataset
         dataset_val = CocoDataset()
-        val_type = "val" if args.year in '2017' else "minival"
+        val_type = "val" if args.year in '2014' else "minival"
         coco = dataset_val.load_coco(args.dataset, val_type, year=args.year, return_coco=True, auto_download=args.download)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
