@@ -134,7 +134,7 @@ class CocoDataset(utils.Dataset):
             self.add_class("coco", i, coco.loadCats(i)[0]["name"])
 
         # Add images
-        for i in image_ids:
+        for i in image_ids:z
             self.add_image(
                 "coco", image_id=i,
                 path=os.path.join(image_dir, coco.imgs[i]['file_name']),
