@@ -1809,7 +1809,7 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
             # logging.exception("Error processing image {}".format(
             #     dataset.image_info[image_id]))
             error_count += 1
-            print('error on',image_id)
+            # print('error on',image_id)
             # if error_count > 5:
             #     raise
 
