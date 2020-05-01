@@ -34,6 +34,8 @@ import numpy as np
 # import cv2
 from cv2 import VideoCapture, imdecode, CAP_PROP_FRAME_HEIGHT, CAP_PROP_FRAME_WIDTH, CAP_PROP_FPS, VideoWriter, VideoWriter_fourcc, resize, INTER_LANCZOS4, INTER_AREA, GaussianBlur, filter2D, bilateralFilter, blur
 from imgaug import augmenters as ia, ALL # https://github.com/aleju/imgaug (pip3 install imgaug)
+import skimage.draw
+from skimage.filters import unsharp_mask
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -56,7 +58,7 @@ ROOT_DIR = os.path.abspath("../../")
 sys.path.append(ROOT_DIR)  # To find local version of the library
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
-
+from mrcnn import visualize
 # Path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 
@@ -81,7 +83,7 @@ class CocoConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 12  # COCO has 80 classes
+    NUM_CLASSES = 1 + 80  # COCO has 80 classes
 
 
 ############################################################
@@ -112,6 +114,18 @@ class CocoDataset(utils.Dataset):
         
         # All classes
         class_ids = [1,2,3,4,5,6,7,8,9,10,11,13]
+        if not class_ids:
+            # All classes
+            class_ids = sorted(coco.getCatIds())
+        if class_ids:
+            image_ids = []
+            for id in class_ids:
+                image_ids.extend(list(coco.getImgIds(catIds=[id])))
+            # Remove duplicates
+            image_ids = list(set(image_ids))
+        else:
+            # All images
+            image_ids = list(coco.imgs.keys())
 
         image_ids = []
         for id in class_ids:
@@ -393,69 +407,40 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
 #  Training
 ############################################################
 # from balloon.py
-def color_splash(image, mask):
+def color_splash(image, masks, class_id, colors):
     """Apply color splash effect.
     image: RGB image [height, width, 3]
     mask: instance segmentation mask [height, width, instance count]
-
+    class_id: list of class ids per mask
+    colors: list of colors per class
     Returns result image.
     """
     # Make a grayscale copy of the image. The grayscale copy still
     # has 3 RGB channels, though.
-    gray = skimage.color.gray2rgb(skimage.color.rgb2gray(image)) * 255
-    # Copy color pixels from the original color image where mask is set
-    if mask.shape[-1] > 0:
+    # gray = skimage.color.gray2rgb(skimage.color.rgb2gray(image)) * 255
+    # # Copy color pixels from the original color image where mask is set
+    # if mask.shape[-1] > 0:
+    #     # We're treating all instances as one, so collapse the mask into one layer
+    #     mask = (np.sum(mask, -1, keepdims=True) >= 1)
+    #     splash = np.where(mask, image, gray).astype(np.uint8)
+    # else:
+    #     splash = gray.astype(np.uint8)
+    # return splash
+    # green = np.zeros([image.shape[0], image.shape[1], image.shape[2]], dtype=np.uint8)
+    # green[:,:] = [0, 255, 0]
+    if masks.shape[-1] > 0:
         # We're treating all instances as one, so collapse the mask into one layer
-        mask = (np.sum(mask, -1, keepdims=True) >= 1)
-        splash = np.where(mask, image, gray).astype(np.uint8)
+        # mask = (np.sum(mask, -1, keepdims=True) < 1)
+        num_inst = masks.shape[-1]
+        for i in range(num_inst):
+            color = colors[i]
+            mask = masks[:, :, i]
+            cover = visualize.apply_mask(image, mask, color)
+            # cover = np.where(mask, image, green).astype(np.uint8)
     else:
-        splash = gray.astype(np.uint8)
-    return splash
-
-'''def detect_and_cover(image_path=None, fname=None, save_path='', is_video=False, orig_video_folder=None, force_jpg=False, is_mosaic=False):
-        assert image_path
-        assert fname # replace these with something better?
-        
-        if is_video: # TODO: video capabilities will finalize later            
-            # Video capture
-            video_path = image_path
-            vcapture = VideoCapture(video_path)
-            width = int(vcapture.get(CAP_PROP_FRAME_WIDTH))
-            height = int(vcapture.get(CAP_PROP_FRAME_HEIGHT))
-            fps = vcapture.get(CAP_PROP_FPS)
-    
-            # Define codec and create video writer, video output is purely for debugging and educational purpose. Not used in decensoring.
-            file_name = fname + "_with_censor_masks.avi"
-            vwriter = VideoWriter(file_name,
-                                      VideoWriter_fourcc(*'MJPG'),
-                                      fps, (width, height))
-            count = 0
-            success = True
-            print("Video read complete, starting video detection:")
-            while success:
-                print("frame: ", count)
-                # Read next image
-                success, image = vcapture.read()
-                if success:
-                    # OpenCV returns images as BGR, convert to RGB
-                    image = image[..., ::-1]
-                    
-                    # Detect objects
-                    r = self.model.detect([image], verbose=0)[0]
-
-                    # Remove unwanted class, code from https://github.com/matterport/Mask_RCNN/issues/1666
-                    # remove_indices = np.where(r['class_ids'] != 2) # remove bars: class 1
-                    # new_masks = np.delete(r['masks'], remove_indices, axis=2)
-                    
-                    cov, mask = self.color_splash(image, r['masks'])
-
-                    # RGB -> BGR to save image to video
-                    cov = cov[..., ::-1]
-                    # Add image to video writer
-                    vwriter.write(cov)
-                    count += 1
-
-            vwriter.release()'''
+        # error case, return image
+        cover = image
+    return cover
 
 
 if __name__ == '__main__':
@@ -467,7 +452,7 @@ if __name__ == '__main__':
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'evaluate' on MS COCO")
-    parser.add_argument('--dataset', required=True,
+    parser.add_argument('--dataset', required=False,
                         metavar="/path/to/coco/",
                         help='Directory of the MS-COCO dataset')
     parser.add_argument('--year', required=False,
@@ -506,7 +491,7 @@ if __name__ == '__main__':
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             GPU_COUNT = 1
-            IMAGES_PER_GPU = 2
+            IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = .7
         config = InferenceConfig()
     config.display()
@@ -597,8 +582,8 @@ if __name__ == '__main__':
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))'''
         # image_path=None, fname=None, save_path='', is_video=False, orig_video_folder=None, force_jpg=False, is_mosaic=False):
         
-        fname = '20200225230301_000077.MP4'
-        video_path = 'C:\\Users\\natha\\Videos\\20200225230301_000077.MP4'
+        fname = 'trim2.mp4'
+        video_path = 'C:\\Users\\natha\\Videos\\trim2.mp4'
         vcapture = VideoCapture(video_path)
         width = int(vcapture.get(CAP_PROP_FRAME_WIDTH))
         height = int(vcapture.get(CAP_PROP_FRAME_HEIGHT))
@@ -612,6 +597,9 @@ if __name__ == '__main__':
         count = 0
         success = True
         print("Video read complete, starting video detection:")
+        
+        class_names = ['BG','person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter']
+        colors = visualize.random_colors(len(class_names))
         while success:
             print("frame: ", count)
             # Read next image
@@ -624,13 +612,26 @@ if __name__ == '__main__':
                 r = model.detect([image], verbose=0)[0]
 
                 # Remove unwanted class, code from https://github.com/matterport/Mask_RCNN/issues/1666
-                # remove_indices = np.where(r['class_ids'] != 2) # remove bars: class 1
-                # new_masks = np.delete(r['masks'], remove_indices, axis=2)
+                remove_indices = np.where(r['class_ids'] > 14) # remove bars: class 1
+                # print(remove_indices)
+                new_masks = np.delete(r['masks'], remove_indices, axis=2)
+                new_classes=np.delete(r['class_ids'], remove_indices, axis=0)
+                new_boxes = np.delete(r['rois'], remove_indices, axis=0)
+                new_scores = np.delete(r['scores'], remove_indices, axis=0)
+                # new_masks = []
+                # for clas_id in r['class_ids']:
+                #     if int(clas_id) < 14:
+                #         new_masks.append(int(clas_id))
                 
-                cov, mask = color_splash(image, r['masks'])
-
+                cov = color_splash(image, new_masks, new_classes, colors)
+                # print('rois',r['rois'],'masks', r['masks'],'class_ids', r['class_ids'],'scores', r['scores'])
+                # print(r['class_ids'])
+                # new_masks = np.array(new_masks)
+                # print(new_masks)
+                # cov = visualize.display_instances2(image, boxes=new_boxes, masks=new_masks, class_ids=new_classes, class_names=class_names, scores=new_scores, colors=colors, making_video=True)
+                
                 # RGB -> BGR to save image to video
-                cov = cov[..., ::-1]
+                # cov = cov[..., ::-1]
                 # Add image to video writer
                 vwriter.write(cov)
                 count += 1
