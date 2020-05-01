@@ -559,7 +559,7 @@ if __name__ == '__main__':
         print("Resnet 4+")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=8,
+                    epochs=16,
                     layers='4+',
                     augmentation=augmentation)
 

@@ -1809,6 +1809,7 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
             # logging.exception("Error processing image {}".format(
             #     dataset.image_info[image_id]))
             error_count += 1
+            # print('error on',image_id)
             # if error_count > 5:
             #     raise
 
@@ -2310,6 +2311,7 @@ class MaskRCNN():
         assert self.mode == "training", "Create model in training mode."
 
         # Pre-defined layer regular expressions
+        print("Batch size:", self.config.BATCH_SIZE)
         layer_regex = {
             # all layers but the backbone
             "heads": r"(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
