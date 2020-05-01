@@ -412,7 +412,7 @@ def color_splash(image, mask):
         splash = gray.astype(np.uint8)
     return splash
 
-def detect_and_cover(image_path=None, fname=None, save_path='', is_video=False, orig_video_folder=None, force_jpg=False, is_mosaic=False):
+'''def detect_and_cover(image_path=None, fname=None, save_path='', is_video=False, orig_video_folder=None, force_jpg=False, is_mosaic=False):
         assert image_path
         assert fname # replace these with something better?
         
@@ -439,11 +439,6 @@ def detect_and_cover(image_path=None, fname=None, save_path='', is_video=False, 
                 if success:
                     # OpenCV returns images as BGR, convert to RGB
                     image = image[..., ::-1]
-                    # save frame into decensor input original. Need to keep names persistent.
-                    im_name = fname[:-4] # if we get this far, we definitely have a .mp4. Remove that, add count and .png ending
-                    file_name = orig_video_folder + im_name + str(count).zfill(6) + '.png' # NOTE Should be adequite for having 10^6 frames, which is more than enough for even 30 mintues total.
-                    # print('saving frame as ', file_name)
-                    skimage.io.imsave(file_name, image)
                     
                     # Detect objects
                     r = self.model.detect([image], verbose=0)[0]
@@ -451,14 +446,8 @@ def detect_and_cover(image_path=None, fname=None, save_path='', is_video=False, 
                     # Remove unwanted class, code from https://github.com/matterport/Mask_RCNN/issues/1666
                     # remove_indices = np.where(r['class_ids'] != 2) # remove bars: class 1
                     # new_masks = np.delete(r['masks'], remove_indices, axis=2)
-
-                    # Apply cover
-                    cov, mask = self.apply_cover(image, r['masks'])
                     
-                    # save covered frame into input for decensoring path
-                    # file_name = save_path + im_name + str(count).zfill(6) + '.png'
-                    # print('saving covered frame as ', file_name)
-                    # skimage.io.imsave(file_name, cov)
+                    cov, mask = self.color_splash(image, r['masks'])
 
                     # RGB -> BGR to save image to video
                     cov = cov[..., ::-1]
@@ -466,33 +455,7 @@ def detect_and_cover(image_path=None, fname=None, save_path='', is_video=False, 
                     vwriter.write(cov)
                     count += 1
 
-            vwriter.release()
-            print('video complete')
-        else:
-            # print("Running on ", end='')
-            # print(image_path)
-            # Read image
-            try:
-                image = skimage.io.imread(image_path) # problems with strange shapes
-                if image.ndim != 3: 
-                    image = skimage.color.gray2rgb(image) # convert to rgb if greyscale
-                if image.shape[-1] == 4:
-                    image = image[..., :3] # strip alpha channel
-            except:
-                print("ERROR in detect_and_cover: Image read. Skipping. image_path=", image_path)
-                return
-            # Detect objects
-            # try:
-            r = self.model.detect([image], verbose=0)[0]
-            
-            cov, mask = self.apply_cover(image, r['masks'])
-            try:
-                # Save output, now force save as png
-                file_name = save_path + fname[:-4] + '.png'
-                skimage.io.imsave(file_name, cov)
-            except:
-                print("ERROR in detect_and_cover: Image write. Skipping. image_path=", image_path)
-            # print("Saved to ", file_name)
+            vwriter.release()'''
 
 
 if __name__ == '__main__':
@@ -626,12 +589,53 @@ if __name__ == '__main__':
 
     elif args.command == "evaluate":
         # Validation dataset
-        dataset_val = CocoDataset()
+        '''dataset_val = CocoDataset()
         val_type = "val" if args.year in '2014' else "minival"
         coco = dataset_val.load_coco(args.dataset, val_type, year=args.year, return_coco=True, auto_download=args.download)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
-        evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
+        evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))'''
+        # image_path=None, fname=None, save_path='', is_video=False, orig_video_folder=None, force_jpg=False, is_mosaic=False):
+        
+        fname = '20200225230301_000077.MP4'
+        video_path = 'C:\\Users\\natha\\Videos\\20200225230301_000077.MP4'
+        vcapture = VideoCapture(video_path)
+        width = int(vcapture.get(CAP_PROP_FRAME_WIDTH))
+        height = int(vcapture.get(CAP_PROP_FRAME_HEIGHT))
+        fps = vcapture.get(CAP_PROP_FPS)
+
+        # Define codec and create video writer, video output is purely for debugging and educational purpose. Not used in decensoring.
+        file_name = fname + "_with_censor_masks.avi"
+        vwriter = VideoWriter(file_name,
+                                    VideoWriter_fourcc(*'MJPG'),
+                                    fps, (width, height))
+        count = 0
+        success = True
+        print("Video read complete, starting video detection:")
+        while success:
+            print("frame: ", count)
+            # Read next image
+            success, image = vcapture.read()
+            if success:
+                # OpenCV returns images as BGR, convert to RGB
+                image = image[..., ::-1]
+                
+                # Detect objects
+                r = model.detect([image], verbose=0)[0]
+
+                # Remove unwanted class, code from https://github.com/matterport/Mask_RCNN/issues/1666
+                # remove_indices = np.where(r['class_ids'] != 2) # remove bars: class 1
+                # new_masks = np.delete(r['masks'], remove_indices, axis=2)
+                
+                cov, mask = color_splash(image, r['masks'])
+
+                # RGB -> BGR to save image to video
+                cov = cov[..., ::-1]
+                # Add image to video writer
+                vwriter.write(cov)
+                count += 1
+
+        vwriter.release()
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'evaluate'".format(args.command))
