@@ -581,8 +581,8 @@ if __name__ == '__main__':
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))'''
         
-        fname = 'trim2.mp4'
-        video_path = 'C:\\Users\\natha\\Videos\\trim2.mp4'
+        fname = 'clip1.mp4'
+        video_path = 'B:\\Downloads\\Videos\\' + fname
         vcapture = VideoCapture(video_path)
         width = int(vcapture.get(CAP_PROP_FRAME_WIDTH))
         height = int(vcapture.get(CAP_PROP_FRAME_HEIGHT))
@@ -621,7 +621,7 @@ if __name__ == '__main__':
                 cov = color_splash(image, new_masks, new_classes, colors)
 
                 # RGB -> BGR to save image to video
-                # cov = cov[..., ::-1]
+                cov = cov[..., ::-1]
                 # Add image to video writer
                 vwriter.write(cov)
                 count += 1
