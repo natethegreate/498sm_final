@@ -83,7 +83,7 @@ class CocoConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 80  # COCO has 80 classes
+    NUM_CLASSES = 1 + 12  # Using 1-13 not 12. NOTE: switch to 80 when running pretrained coco
 
 
 ############################################################
@@ -580,7 +580,6 @@ if __name__ == '__main__':
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))'''
-        # image_path=None, fname=None, save_path='', is_video=False, orig_video_folder=None, force_jpg=False, is_mosaic=False):
         
         fname = 'trim2.mp4'
         video_path = 'C:\\Users\\natha\\Videos\\trim2.mp4'
@@ -618,18 +617,9 @@ if __name__ == '__main__':
                 new_classes=np.delete(r['class_ids'], remove_indices, axis=0)
                 new_boxes = np.delete(r['rois'], remove_indices, axis=0)
                 new_scores = np.delete(r['scores'], remove_indices, axis=0)
-                # new_masks = []
-                # for clas_id in r['class_ids']:
-                #     if int(clas_id) < 14:
-                #         new_masks.append(int(clas_id))
-                
+     
                 cov = color_splash(image, new_masks, new_classes, colors)
-                # print('rois',r['rois'],'masks', r['masks'],'class_ids', r['class_ids'],'scores', r['scores'])
-                # print(r['class_ids'])
-                # new_masks = np.array(new_masks)
-                # print(new_masks)
-                # cov = visualize.display_instances2(image, boxes=new_boxes, masks=new_masks, class_ids=new_classes, class_names=class_names, scores=new_scores, colors=colors, making_video=True)
-                
+
                 # RGB -> BGR to save image to video
                 # cov = cov[..., ::-1]
                 # Add image to video writer
