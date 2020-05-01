@@ -31,6 +31,8 @@ import os
 import sys
 import time
 import numpy as np
+# import cv2
+from cv2 import VideoCapture, imdecode, CAP_PROP_FRAME_HEIGHT, CAP_PROP_FRAME_WIDTH, CAP_PROP_FPS, VideoWriter, VideoWriter_fourcc, resize, INTER_LANCZOS4, INTER_AREA, GaussianBlur, filter2D, bilateralFilter, blur
 from imgaug import augmenters as ia, ALL # https://github.com/aleju/imgaug (pip3 install imgaug)
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
@@ -390,6 +392,107 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
 ############################################################
 #  Training
 ############################################################
+# from balloon.py
+def color_splash(image, mask):
+    """Apply color splash effect.
+    image: RGB image [height, width, 3]
+    mask: instance segmentation mask [height, width, instance count]
+
+    Returns result image.
+    """
+    # Make a grayscale copy of the image. The grayscale copy still
+    # has 3 RGB channels, though.
+    gray = skimage.color.gray2rgb(skimage.color.rgb2gray(image)) * 255
+    # Copy color pixels from the original color image where mask is set
+    if mask.shape[-1] > 0:
+        # We're treating all instances as one, so collapse the mask into one layer
+        mask = (np.sum(mask, -1, keepdims=True) >= 1)
+        splash = np.where(mask, image, gray).astype(np.uint8)
+    else:
+        splash = gray.astype(np.uint8)
+    return splash
+
+def detect_and_cover(image_path=None, fname=None, save_path='', is_video=False, orig_video_folder=None, force_jpg=False, is_mosaic=False):
+        assert image_path
+        assert fname # replace these with something better?
+        
+        if is_video: # TODO: video capabilities will finalize later            
+            # Video capture
+            video_path = image_path
+            vcapture = VideoCapture(video_path)
+            width = int(vcapture.get(CAP_PROP_FRAME_WIDTH))
+            height = int(vcapture.get(CAP_PROP_FRAME_HEIGHT))
+            fps = vcapture.get(CAP_PROP_FPS)
+    
+            # Define codec and create video writer, video output is purely for debugging and educational purpose. Not used in decensoring.
+            file_name = fname + "_with_censor_masks.avi"
+            vwriter = VideoWriter(file_name,
+                                      VideoWriter_fourcc(*'MJPG'),
+                                      fps, (width, height))
+            count = 0
+            success = True
+            print("Video read complete, starting video detection:")
+            while success:
+                print("frame: ", count)
+                # Read next image
+                success, image = vcapture.read()
+                if success:
+                    # OpenCV returns images as BGR, convert to RGB
+                    image = image[..., ::-1]
+                    # save frame into decensor input original. Need to keep names persistent.
+                    im_name = fname[:-4] # if we get this far, we definitely have a .mp4. Remove that, add count and .png ending
+                    file_name = orig_video_folder + im_name + str(count).zfill(6) + '.png' # NOTE Should be adequite for having 10^6 frames, which is more than enough for even 30 mintues total.
+                    # print('saving frame as ', file_name)
+                    skimage.io.imsave(file_name, image)
+                    
+                    # Detect objects
+                    r = self.model.detect([image], verbose=0)[0]
+
+                    # Remove unwanted class, code from https://github.com/matterport/Mask_RCNN/issues/1666
+                    # remove_indices = np.where(r['class_ids'] != 2) # remove bars: class 1
+                    # new_masks = np.delete(r['masks'], remove_indices, axis=2)
+
+                    # Apply cover
+                    cov, mask = self.apply_cover(image, r['masks'])
+                    
+                    # save covered frame into input for decensoring path
+                    # file_name = save_path + im_name + str(count).zfill(6) + '.png'
+                    # print('saving covered frame as ', file_name)
+                    # skimage.io.imsave(file_name, cov)
+
+                    # RGB -> BGR to save image to video
+                    cov = cov[..., ::-1]
+                    # Add image to video writer
+                    vwriter.write(cov)
+                    count += 1
+
+            vwriter.release()
+            print('video complete')
+        else:
+            # print("Running on ", end='')
+            # print(image_path)
+            # Read image
+            try:
+                image = skimage.io.imread(image_path) # problems with strange shapes
+                if image.ndim != 3: 
+                    image = skimage.color.gray2rgb(image) # convert to rgb if greyscale
+                if image.shape[-1] == 4:
+                    image = image[..., :3] # strip alpha channel
+            except:
+                print("ERROR in detect_and_cover: Image read. Skipping. image_path=", image_path)
+                return
+            # Detect objects
+            # try:
+            r = self.model.detect([image], verbose=0)[0]
+            
+            cov, mask = self.apply_cover(image, r['masks'])
+            try:
+                # Save output, now force save as png
+                file_name = save_path + fname[:-4] + '.png'
+                skimage.io.imsave(file_name, cov)
+            except:
+                print("ERROR in detect_and_cover: Image write. Skipping. image_path=", image_path)
+            # print("Saved to ", file_name)
 
 
 if __name__ == '__main__':
