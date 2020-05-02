@@ -568,7 +568,7 @@ if __name__ == '__main__':
         print("Fine tune all layers")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=40,
+                    epochs=80,
                     layers='all',
                     augmentation=augmentation)
 
@@ -581,7 +581,7 @@ if __name__ == '__main__':
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))'''
         
-        fname = 'clip1.mp4'
+        fname = 'clip2.mp4'
         video_path = 'B:\\Downloads\\Videos\\' + fname
         vcapture = VideoCapture(video_path)
         width = int(vcapture.get(CAP_PROP_FRAME_WIDTH))
@@ -599,6 +599,8 @@ if __name__ == '__main__':
         
         class_names = ['BG','person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter']
         colors = visualize.random_colors(len(class_names))
+        for n in range(len(class_names)):
+            print('class:',class_names[n],'color:',colors[n])
         while success:
             print("frame: ", count)
             # Read next image
