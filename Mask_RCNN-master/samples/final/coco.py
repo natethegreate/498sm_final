@@ -80,7 +80,7 @@ class CocoConfig(Config):
     # Give the configuration a recognizable name
     NAME = "coco"
 
-    IMAGES_PER_GPU = 1
+    IMAGES_PER_GPU = 2
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 12  # Using 1-13 not 12. NOTE: switch to 80 when running pretrained coco
@@ -552,16 +552,16 @@ if __name__ == '__main__':
         print("Training network heads")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=8,
+                    epochs=15,
                     layers='heads',
                     augmentation=augmentation)
 
-        print("Resnet 4+")
-        model.train(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE,
-                    epochs=16,
-                    layers='4+',
-                    augmentation=augmentation)
+        # print("Resnet 4+")
+        # model.train(dataset_train, dataset_val,
+        #             learning_rate=config.LEARNING_RATE,
+        #             epochs=16,
+        #             layers='4+',
+        #             augmentation=augmentation)
 
         # Training - Stage 3
         # Fine tune all layers
