@@ -80,7 +80,7 @@ class CocoConfig(Config):
     # Give the configuration a recognizable name
     NAME = "coco"
 
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 12  # Using 1-13 not 12. NOTE: switch to 80 when running pretrained coco
