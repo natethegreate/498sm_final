@@ -83,7 +83,7 @@ class CocoConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 12  # Using 1-13 not 12. NOTE: switch to 80 when running pretrained coco
+    NUM_CLASSES = 1 + 80  # Using 1-13 not 12. NOTE: switch to 80 when running pretrained coco
 
 
 ############################################################
@@ -433,7 +433,7 @@ def color_splash(image, masks, class_id, colors):
         # mask = (np.sum(mask, -1, keepdims=True) < 1)
         num_inst = masks.shape[-1]
         for i in range(num_inst):
-            color = colors[i]
+            color = colors[int(class_id[i])]
             mask = masks[:, :, i]
             cover = visualize.apply_mask(image, mask, color)
             # cover = np.where(mask, image, green).astype(np.uint8)
@@ -601,10 +601,15 @@ if __name__ == '__main__':
         colors = visualize.random_colors(len(class_names))
         for n in range(len(class_names)):
             print('class:',class_names[n],'color:',colors[n])
+
+        even_odd = 0
         while success:
-            print("frame: ", count)
+            even_odd += 1
             # Read next image
             success, image = vcapture.read()
+            if even_odd % 2 == 0: # skip every other frame
+                continue
+            print("frame: ", count)
             if success:
                 # OpenCV returns images as BGR, convert to RGB
                 image = image[..., ::-1]
@@ -626,7 +631,8 @@ if __name__ == '__main__':
                 cov = cov[..., ::-1]
                 # Add image to video writer
                 vwriter.write(cov)
-                count += 1
+                vwriter.write(cov) # double write hell frame
+                count += 2
 
         vwriter.release()
     else:
