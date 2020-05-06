@@ -193,7 +193,6 @@ def display_instances2(image, boxes, masks, class_ids, class_names,
     if not N:
         print("\n*** No instances to display *** \n")
     else:
-        # print(boxes.shape[0], masks.shape[-1], class_ids.shape[0])
         assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
 
     # If no axis is passed, create one and automatically call show()
@@ -221,7 +220,6 @@ def display_instances2(image, boxes, masks, class_ids, class_names,
             #     color = colors[0]
             # elif class_id == 2:
             #     color = colors[1]
-            # print(len(colors), class_id-1)
             color = colors[class_id-1]
         elif hc:
             #just for hard-code the mask for paper

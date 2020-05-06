@@ -59,6 +59,11 @@ sys.path.append(ROOT_DIR)  # To find local version of the library
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
 from mrcnn import visualize
+
+import matplotlib.pyplot as plt
+from matplotlib import patches,  lines
+from matplotlib.patches import Polygon
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 # Path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 
@@ -81,9 +86,10 @@ class CocoConfig(Config):
     NAME = "coco"
 
     IMAGES_PER_GPU = 1
+    BACKBONE = "resnet50"
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 80  # Using 1-13 not 12. NOTE: switch to 80 when running pretrained coco
+    NUM_CLASSES = 1 + 12  # Using 1-13 not 12. NOTE: switch to 80 when running pretrained coco
 
 
 ############################################################
@@ -407,7 +413,7 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
 #  Training
 ############################################################
 # from balloon.py
-def color_splash(image, masks, class_id, colors):
+def color_splash(image, masks, boxes, class_id, colors):
     """Apply color splash effect.
     image: RGB image [height, width, 3]
     mask: instance segmentation mask [height, width, instance count]
@@ -440,6 +446,7 @@ def color_splash(image, masks, class_id, colors):
     else:
         # error case, return image
         cover = image
+    
     return cover
 
 
@@ -581,7 +588,7 @@ if __name__ == '__main__':
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))'''
         
-        fname = 'clip2.mp4'
+        fname = 'jetclip.mp4'
         video_path = 'B:\\Downloads\\Videos\\' + fname
         vcapture = VideoCapture(video_path)
         width = int(vcapture.get(CAP_PROP_FRAME_WIDTH))
@@ -598,7 +605,8 @@ if __name__ == '__main__':
         print("Video read complete, starting video detection:")
         
         class_names = ['BG','person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter']
-        colors = visualize.random_colors(len(class_names))
+        # colors = visualize.random_colors(len(class_names))
+        colors=[(0.2857142857142858, 1.0, 0.0), (0.0, 1.0, 0.5714285714285712), (0.0, .9, 0.1428571428571428), (0.7142857142857144, 1.0, 0.0), (0.2857142857142856, 0.0, 1.0), (1.0, 0.0, 0.4285714285714288), (1.0, 0.8571428571428571, 0.0), (0.0, 0.5714285714285716, 1.0), (1.0, 0.0, 0.0), (0.0, 0.14285714285714235, 1.0), (1.0, 0.4285714285714286, 0.0), (0.7142857142857144, 0.0, 1.0),  (1.0, 0.0, 0.8571428571428577),  (0.0, 1.0, 1.0)]
         for n in range(len(class_names)):
             print('class:',class_names[n],'color:',colors[n])
 
@@ -606,6 +614,8 @@ if __name__ == '__main__':
         while success:
             even_odd += 1
             # Read next image
+            plt.clf()
+            plt.close()
             success, image = vcapture.read()
             if even_odd % 2 == 0: # skip every other frame
                 continue
@@ -618,21 +628,21 @@ if __name__ == '__main__':
                 r = model.detect([image], verbose=0)[0]
 
                 # Remove unwanted class, code from https://github.com/matterport/Mask_RCNN/issues/1666
-                remove_indices = np.where(r['class_ids'] > 14) # remove bars: class 1
+                remove_indices = np.where(r['class_ids'] > 13) # remove bars: class 1
                 # print(remove_indices)
                 new_masks = np.delete(r['masks'], remove_indices, axis=2)
                 new_classes=np.delete(r['class_ids'], remove_indices, axis=0)
                 new_boxes = np.delete(r['rois'], remove_indices, axis=0)
                 new_scores = np.delete(r['scores'], remove_indices, axis=0)
      
-                cov = color_splash(image, new_masks, new_classes, colors)
-
-                # RGB -> BGR to save image to video
-                cov = cov[..., ::-1]
+                cov = color_splash(image, new_masks, new_boxes, new_classes, colors)
+                cov = cov[..., ::-1]  # RGB -> BGR to save image to video
+                # cov = visualize.display_instances2(image, new_boxes, new_masks, new_classes, class_names, new_scores, colors=colors, making_video=True)
+                
                 # Add image to video writer
                 vwriter.write(cov)
                 vwriter.write(cov) # double write hell frame
-                count += 2
+                count += 1
 
         vwriter.release()
     else:
